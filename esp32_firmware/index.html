@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control de Grúa Torre</title>
+    <style>
+        /* Diseño minimalista y responsivo para el control remoto */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none; /* Evita que el texto se seleccione al mantener presionado */
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #4CAF50;
+        }
+
+        /* Contenedor principal de controles */
+        .controles-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        /* Secciones individuales (Carro, Elevación, Giro) */
+        .seccion-control {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .seccion-titulo {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #aaaaaa;
+        }
+
+        /* Disposición de los botones */
+        .botones-grupo {
+            display: flex;
+            gap: 20px;
+        }
+
+        /* Estilos de los botones */
+        .btn {
+            background-color: #333333;
+            color: white;
+            border: 2px solid #555555;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.1s;
+            touch-action: manipulation; /* Optimiza el toque en móviles */
+        }
+
+        .btn:active {
+            background-color: #4CAF50;
+            border-color: #4CAF50;
+            transform: scale(0.95);
+        }
+
+        /* Botón Stop rojo */
+        .btn-stop {
+            background-color: #d32f2f;
+            border-color: #b71c1c;
+            width: 100px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-stop:active {
+            background-color: #ff5252;
+            border-color: #ff5252;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎮 Control Grúa Torre</h1>
+
+    <div class="controles-container">
+        
+        <!-- Control de Carro (Adelante/Atrás) -->
+        <div class="seccion-control">
+            <div class="seccion-titulo">Carro</div>
+            <div class="botones-grupo">
+                <button class="btn" onmousedown="enviarComando('F')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('F')" ontouchend="enviarComando('S')">Adel.</button>
+                <button class="btn" onmousedown="enviarComando('B')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('B')" ontouchend="enviarComando('S')">Atrás</button>
+            </div>
+        </div>
+
+        <!-- Control de Elevación (Subir/Bajar) -->
+        <div class="seccion-control">
+            <div class="seccion-titulo">Elevación</div>
+            <div class="botones-grupo">
+                <button class="btn" onmousedown="enviarComando('U')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('U')" ontouchend="enviarComando('S')">Subir</button>
+                <button class="btn" onmousedown="enviarComando('D')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('D')" ontouchend="enviarComando('S')">Bajar</button>
+            </div>
+        </div>
+
+        <!-- Control de Giro (Izquierda/Derecha) -->
+        <div class="seccion-control">
+            <div class="seccion-titulo">Giro</div>
+            <div class="botones-grupo">
+                <button class="btn" onmousedown="enviarComando('L')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('L')" ontouchend="enviarComando('S')">Izq.</button>
+                <button class="btn" onmousedown="enviarComando('R')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('R')" ontouchend="enviarComando('S')">Der.</button>
+            </div>
+        </div>
+
+        <!-- Botón Parada de Emergencia -->
+        <button class="btn btn-stop" onclick="enviarComando('S')">STOP</button>
+
+    </div>
+
+    <script>
+        // Lógica de JavaScript para enviar peticiones al ESP32 sin recargar la página
+        
+        // Variable para evitar saturar el servidor con demasiadas peticiones
+        let ultimoComandoEnviado = '';
+        let timeoutReenvio = null;
+
+        function enviarComando(comando) {
+            // Evitamos enviar el mismo comando repetidamente de forma muy rápida
+            // a menos que sea un comando de movimiento continuo necesario
+            if (comando !== 'S') {
+                // Iniciar bucle de envío constante para el timeout de seguridad del Arduino
+                if(timeoutReenvio) clearInterval(timeoutReenvio);
+                timeoutReenvio = setInterval(() => {
+                    ejecutarFetch(comando);
+                }, 200); // Enviar cada 200ms mientras se mantenga presionado
+            } else {
+                // Si es S (Stop), limpiamos el intervalo y enviamos el comando una vez
+                if(timeoutReenvio) clearInterval(timeoutReenvio);
+            }
+            
+            ejecutarFetch(comando);
+        }
+
+        function ejecutarFetch(comando) {
+            // Usamos Fetch API para hacer una petición GET al endpoint /cmd
+            fetch(`/cmd?c=${comando}`)
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Error en la comunicación con el ESP32');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error de red:', error);
+                });
+        }
+        
+        // Prevenir el menú contextual al mantener pulsado en dispositivos móviles
+        window.oncontextmenu = function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        };
+    </script>
+</body>
+</html>
