@@ -6,8 +6,8 @@ import time
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE RED WIFI
 # ---------------------------------------------------------
-WIFI_SSID = "CLAROPALACIOS"        # Reemplazar con el nombre de tu red WiFi
-WIFI_PASSWORD = "22718742" # Reemplazar con la contraseña de tu red WiFi
+WIFI_SSID = "TU_SSID"        # Reemplazar con el nombre de tu red WiFi
+WIFI_PASSWORD = "TU_PASSWORD" # Reemplazar con la contraseña de tu red WiFi
 
 def conectar_wifi():
     """Función robusta para conectar el ESP32 a la red WiFi local."""
