@@ -169,21 +169,18 @@
     <script>
         // Lógica de JavaScript para enviar peticiones al ESP32 sin recargar la página
         
-        // Variable para evitar saturar el servidor con demasiadas peticiones
-        let ultimoComandoEnviado = '';
         let timeoutReenvio = null;
+        let fetchController = null;
 
         function enviarComando(comando) {
-            // Evitamos enviar el mismo comando repetidamente de forma muy rápida
-            // a menos que sea un comando de movimiento continuo necesario
+            // Si es un comando continuo, iniciamos el intervalo
             if (comando !== 'S') {
-                // Iniciar bucle de envío constante para el timeout de seguridad del Arduino
                 if(timeoutReenvio) clearInterval(timeoutReenvio);
                 timeoutReenvio = setInterval(() => {
                     ejecutarFetch(comando);
                 }, 200); // Enviar cada 200ms mientras se mantenga presionado
             } else {
-                // Si es S (Stop), limpiamos el intervalo y enviamos el comando una vez
+                // Si es S (Stop), limpiamos el intervalo y enviamos el comando de inmediato
                 if(timeoutReenvio) clearInterval(timeoutReenvio);
             }
             
@@ -191,15 +188,23 @@
         }
 
         function ejecutarFetch(comando) {
+            // Cancelamos cualquier petición previa en curso para que el comando actual tome prioridad instantánea
+            if (fetchController) {
+                fetchController.abort();
+            }
+            fetchController = new AbortController();
+
             // Usamos Fetch API para hacer una petición GET al endpoint /cmd
-            fetch(`/cmd?c=${comando}`)
+            fetch(`/cmd?c=${comando}`, { signal: fetchController.signal })
                 .then(response => {
                     if (!response.ok) {
                         console.error('Error en la comunicación con el ESP32');
                     }
                 })
                 .catch(error => {
-                    console.error('Error de red:', error);
+                    if (error.name !== 'AbortError') {
+                        console.error('Error de red:', error);
+                    }
                 });
         }
         

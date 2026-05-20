@@ -97,12 +97,21 @@ void loop() {
 
 // Función para leer caracteres enviados por el ESP32
 void leerComandoSerial() {
-  if (Serial.available() > 0) {
+  bool recibioNuevo = false;
+  char ultimoC = '\0';
+  
+  // Leemos todo el buffer disponible para no quedarnos rezagados
+  while (Serial.available() > 0) {
     char c = Serial.read();
     if (c == 'F' || c == 'B' || c == 'U' || c == 'D' || c == 'L' || c == 'R' || c == 'S') {
-      comandoWeb = c;
-      ultimoComandoWebTime = millis(); // Actualizamos el temporizador de seguridad
+      ultimoC = c;
+      recibioNuevo = true;
     }
+  }
+  
+  if (recibioNuevo) {
+    comandoWeb = ultimoC;
+    ultimoComandoWebTime = millis(); // Actualizamos el temporizador de seguridad
   }
 }
 
