@@ -20,10 +20,35 @@
 
         h1 {
             font-size: 1.5rem;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
             color: #4CAF50;
         }
+
+        /* Panel de telemetría */
+        .telemetria-panel {
+            background-color: #1e1e1e;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 1.1rem;
+        }
+
+        .telemetria-panel span {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .telemetria-panel span.offline {
+            color: #d32f2f;
+        }
+
 
         /* Contenedor principal de controles */
         .controles-container {
@@ -99,6 +124,13 @@
 <body>
 
     <h1>🎮 Control Grúa Torre</h1>
+
+    <!-- Panel de Telemetría -->
+    <div class="telemetria-panel">
+        <div>Estado: <span id="tel-estado" class="offline">Offline</span></div>
+        <div>Comando: <span id="tel-cmd">-</span></div>
+        <div>Posición Giro: <span id="tel-pos">0</span></div>
+    </div>
 
     <div class="controles-container">
         
@@ -177,6 +209,40 @@
             event.stopPropagation();
             return false;
         };
+
+        // Bucle de lectura de telemetría
+        setInterval(() => {
+            fetch('/telemetry')
+                .then(response => {
+                    if (response.ok) return response.json();
+                    throw new Error('Error en respuesta');
+                })
+                .then(data => {
+                    // Si llegamos aquí, estamos online y la conexión es exitosa
+                    let elEstado = document.getElementById('tel-estado');
+                    elEstado.textContent = 'Online';
+                    elEstado.className = '';
+                    
+                    // Mapeo de comandos para mostrar un texto amigable
+                    const mapCmd = {
+                        'F':'Adelante', 'B':'Atrás', 
+                        'U':'Subir', 'D':'Bajar', 
+                        'L':'Giro Izq.', 'R':'Giro Der.', 
+                        'S':'Detenido'
+                    };
+                    let cmdTexto = mapCmd[data.cmd] || data.cmd;
+                    
+                    // Actualizar el DOM
+                    document.getElementById('tel-cmd').textContent = cmdTexto;
+                    document.getElementById('tel-pos').textContent = data.pos;
+                })
+                .catch(error => {
+                    // Si hay error en la petición, asumimos que estamos offline
+                    let elEstado = document.getElementById('tel-estado');
+                    elEstado.textContent = 'Offline';
+                    elEstado.className = 'offline';
+                });
+        }, 500); // Consulta la telemetría cada medio segundo
     </script>
 </body>
 </html>
