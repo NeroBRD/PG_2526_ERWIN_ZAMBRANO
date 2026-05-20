@@ -12,7 +12,12 @@ WIFI_PASSWORD = "TU_PASSWORD" # Reemplazar con la contraseña de tu red WiFi
 def conectar_wifi():
     """Función robusta para conectar el ESP32 a la red WiFi local."""
     estacion = network.WLAN(network.STA_IF)
+    
+    # Forzar un reseteo del módulo WiFi para evitar "Wifi Internal State Error" tras un soft reboot
+    estacion.active(False)
+    time.sleep(0.5)
     estacion.active(True)
+    estacion.disconnect()
     
     if not estacion.isconnected():
         print("Conectando a la red WiFi...")

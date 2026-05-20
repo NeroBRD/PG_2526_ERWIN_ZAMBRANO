@@ -169,45 +169,59 @@
     <script>
         // Lógica de JavaScript para enviar peticiones al ESP32 sin recargar la página
         
-        let timeoutReenvio = null;
+        let comandoActivo = 'S';
+        let comandoPendiente = null;
+        let peticionEnVuelo = false;
         let fetchController = null;
 
         function enviarComando(comando) {
-            // Si es un comando continuo, iniciamos el intervalo
-            if (comando !== 'S') {
-                if(timeoutReenvio) clearInterval(timeoutReenvio);
-                timeoutReenvio = setInterval(() => {
-                    ejecutarFetch(comando);
-                }, 200); // Enviar cada 200ms mientras se mantenga presionado
-            } else {
-                // Si es S (Stop), limpiamos el intervalo y enviamos el comando de inmediato
-                if(timeoutReenvio) clearInterval(timeoutReenvio);
+            comandoActivo = comando;
+            comandoPendiente = comando;
+            
+            // Si es un Stop, abortamos cualquier petición en vuelo para darle prioridad absoluta e inmediata
+            if (comando === 'S' && peticionEnVuelo && fetchController) {
+                fetchController.abort();
+                peticionEnVuelo = false;
             }
             
-            ejecutarFetch(comando);
+            intentarFetch();
         }
 
-        function ejecutarFetch(comando) {
-            // Cancelamos cualquier petición previa en curso para que el comando actual tome prioridad instantánea
-            if (fetchController) {
-                fetchController.abort();
-            }
+        function intentarFetch() {
+            // Si hay una petición de movimiento en curso o no hay nada pendiente, esperamos
+            if (peticionEnVuelo || !comandoPendiente) return;
+
+            let cmdAEnviar = comandoPendiente;
+            comandoPendiente = null; 
+            peticionEnVuelo = true;
+
             fetchController = new AbortController();
 
-            // Usamos Fetch API para hacer una petición GET al endpoint /cmd
-            fetch(`/cmd?c=${comando}`, { signal: fetchController.signal })
-                .then(response => {
-                    if (!response.ok) {
-                        console.error('Error en la comunicación con el ESP32');
-                    }
-                })
+            fetch(`/cmd?c=${cmdAEnviar}`, { signal: fetchController.signal })
+                .then(r => r.text())
                 .catch(error => {
                     if (error.name !== 'AbortError') {
-                        console.error('Error de red:', error);
+                        console.error('Error de red al enviar comando:', error);
+                    }
+                })
+                .finally(() => {
+                    peticionEnVuelo = false;
+                    // Si el usuario soltó o cambió de botón mientras la red cargaba, lo enviamos de inmediato
+                    if (comandoPendiente) {
+                        intentarFetch();
                     }
                 });
         }
-        
+
+        // Bucle "Keep-Alive": Repite el comando cada 250ms solo si la red está libre
+        // Esto evita que actúe el Timeout de Seguridad del Arduino (500ms) sin atascar el servidor ESP32.
+        setInterval(() => {
+            if (comandoActivo !== 'S') {
+                comandoPendiente = comandoActivo;
+                intentarFetch();
+            }
+        }, 250);
+
         // Prevenir el menú contextual al mantener pulsado en dispositivos móviles
         window.oncontextmenu = function(event) {
             event.preventDefault();

@@ -51,6 +51,10 @@ async def leer_uart():
             print("Error leyendo UART:", e)
         await asyncio.sleep(0.05)
 
+async def apagar_led():
+    await asyncio.sleep(0.05)
+    led_status.value(0)
+
 async def procesar_peticion(reader, writer):
     """Procesa cada petición HTTP entrante de forma asíncrona."""
     global comando_actual
@@ -83,12 +87,11 @@ async def procesar_peticion(reader, writer):
             comando_actual = comando
             print(f"Comando enviado: {comando}")
             
-            # Parpadear LED de estado para feedback visual
+            # Parpadear LED de estado sin bloquear la respuesta
             led_status.value(1)
-            await asyncio.sleep(0.05)
-            led_status.value(0)
+            asyncio.create_task(apagar_led())
             
-            # Responder OK al cliente (Fetch API)
+            # Responder OK al cliente (Fetch API) inmediatamente
             respuesta = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nOK"
             writer.write(respuesta.encode('utf-8'))
             
@@ -105,12 +108,22 @@ async def procesar_peticion(reader, writer):
             
         await writer.drain()
         
+    except OSError as e:
+        # 104 = ECONNRESET, 103 = ECONNABORTED, 32 = EPIPE
+        if len(e.args) > 0 and e.args[0] in (104, 103, 32):
+            # El navegador cerró la conexión a propósito (AbortController funcionó)
+            pass
+        else:
+            print("Error de red (OSError) al procesar petición:", e)
     except Exception as e:
-        print("Error al procesar la petición:", e)
+        print("Error general al procesar la petición:", e)
     finally:
         # Cerrar la conexión
-        writer.close()
-        await writer.wait_closed()
+        try:
+            writer.close()
+            await writer.wait_closed()
+        except Exception:
+            pass
 
 async def main():
     """Función principal asíncrona que inicia el servidor."""
