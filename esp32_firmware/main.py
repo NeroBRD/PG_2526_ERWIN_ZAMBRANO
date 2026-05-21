@@ -3,25 +3,19 @@
 import uasyncio as asyncio
 from machine import UART, Pin
 import json
-
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PINES Y UART
 # ---------------------------------------------------------
 # Inicializamos el LED integrado para mostrar estado (opcional)
 led_status = Pin(2, Pin.OUT)
-
 # Configuración del puerto UART para comunicación con Arduino
 # ESP32 TX (GPIO 17) -> Arduino Nano RX (D0)
 # Ajustar los pines tx y rx según la necesidad o conexión física real si cambia
 uart = UART(2, baudrate=9600, tx=17, rx=16) 
-
 # Variable global para mantener el último comando activo (para evitar spam)
 comando_actual = 'S'
-
 # Variable global para almacenar el estado de la telemetría
 estado_grua = {"pos": 0, "cmd": "S"}
-
-
 # ---------------------------------------------------------
 # SERVIDOR WEB
 # ---------------------------------------------------------
@@ -32,7 +26,6 @@ def leer_html():
             return f.read()
     except Exception as e:
         return f"Error al cargar index.html: {e}"
-
 async def leer_uart():
     """Lee constantemente los datos de telemetría enviados por el Arduino."""
     sreader = asyncio.StreamReader(uart)
@@ -47,14 +40,14 @@ async def leer_uart():
                     if len(datos) == 2:
                         estado_grua["pos"] = int(datos[0])
                         estado_grua["cmd"] = datos[1]
+                        # Mostrar la telemetría recibida en la consola de Thonny
+                        print(f"[Telemetría] Posición Giro: {estado_grua['pos']} | Comando Activo: {estado_grua['cmd']}")
         except Exception as e:
             print("Error leyendo UART:", e)
         await asyncio.sleep(0.05)
-
 async def apagar_led():
     await asyncio.sleep(0.05)
     led_status.value(0)
-
 async def procesar_peticion(reader, writer):
     """Procesa cada petición HTTP entrante de forma asíncrona."""
     global comando_actual
@@ -124,7 +117,6 @@ async def procesar_peticion(reader, writer):
             await writer.wait_closed()
         except Exception:
             pass
-
 async def main():
     """Función principal asíncrona que inicia el servidor."""
     print("Iniciando servidor web asíncrono...")
@@ -142,7 +134,6 @@ async def main():
     # Bucle infinito para mantener vivo el servidor
     while True:
         await asyncio.sleep(3600)
-
 # Iniciar el bucle de eventos de uasyncio
 try:
     asyncio.run(main())
