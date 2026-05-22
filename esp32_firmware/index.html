@@ -20,10 +20,35 @@
 
         h1 {
             font-size: 1.5rem;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
             color: #4CAF50;
         }
+
+        /* Panel de telemetría */
+        .telemetria-panel {
+            background-color: #1e1e1e;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 1.1rem;
+        }
+
+        .telemetria-panel span {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .telemetria-panel span.offline {
+            color: #d32f2f;
+        }
+
 
         /* Contenedor principal de controles */
         .controles-container {
@@ -100,6 +125,13 @@
 
     <h1>🎮 Control Grúa Torre</h1>
 
+    <!-- Panel de Telemetría -->
+    <div class="telemetria-panel">
+        <div>Estado: <span id="tel-estado" class="offline">Offline</span></div>
+        <div>Comando: <span id="tel-cmd">-</span></div>
+        <div>Posición Giro: <span id="tel-pos">0</span></div>
+    </div>
+
     <div class="controles-container">
         
         <!-- Control de Carro (Adelante/Atrás) -->
@@ -137,46 +169,99 @@
     <script>
         // Lógica de JavaScript para enviar peticiones al ESP32 sin recargar la página
         
-        // Variable para evitar saturar el servidor con demasiadas peticiones
-        let ultimoComandoEnviado = '';
-        let timeoutReenvio = null;
+        let comandoActivo = 'S';
+        let comandoPendiente = null;
+        let peticionEnVuelo = false;
+        let fetchController = null;
 
         function enviarComando(comando) {
-            // Evitamos enviar el mismo comando repetidamente de forma muy rápida
-            // a menos que sea un comando de movimiento continuo necesario
-            if (comando !== 'S') {
-                // Iniciar bucle de envío constante para el timeout de seguridad del Arduino
-                if(timeoutReenvio) clearInterval(timeoutReenvio);
-                timeoutReenvio = setInterval(() => {
-                    ejecutarFetch(comando);
-                }, 200); // Enviar cada 200ms mientras se mantenga presionado
-            } else {
-                // Si es S (Stop), limpiamos el intervalo y enviamos el comando una vez
-                if(timeoutReenvio) clearInterval(timeoutReenvio);
+            comandoActivo = comando;
+            comandoPendiente = comando;
+            
+            // Si es un Stop, abortamos cualquier petición en vuelo para darle prioridad absoluta e inmediata
+            if (comando === 'S' && peticionEnVuelo && fetchController) {
+                fetchController.abort();
+                peticionEnVuelo = false;
             }
             
-            ejecutarFetch(comando);
+            intentarFetch();
         }
 
-        function ejecutarFetch(comando) {
-            // Usamos Fetch API para hacer una petición GET al endpoint /cmd
-            fetch(`/cmd?c=${comando}`)
-                .then(response => {
-                    if (!response.ok) {
-                        console.error('Error en la comunicación con el ESP32');
+        function intentarFetch() {
+            // Si hay una petición de movimiento en curso o no hay nada pendiente, esperamos
+            if (peticionEnVuelo || !comandoPendiente) return;
+
+            let cmdAEnviar = comandoPendiente;
+            comandoPendiente = null; 
+            peticionEnVuelo = true;
+
+            fetchController = new AbortController();
+
+            fetch(`/cmd?c=${cmdAEnviar}`, { signal: fetchController.signal })
+                .then(r => r.text())
+                .catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.error('Error de red al enviar comando:', error);
                     }
                 })
-                .catch(error => {
-                    console.error('Error de red:', error);
+                .finally(() => {
+                    peticionEnVuelo = false;
+                    // Si el usuario soltó o cambió de botón mientras la red cargaba, lo enviamos de inmediato
+                    if (comandoPendiente) {
+                        intentarFetch();
+                    }
                 });
         }
-        
+
+        // Bucle "Keep-Alive": Repite el comando cada 250ms solo si la red está libre
+        // Esto evita que actúe el Timeout de Seguridad del Arduino (500ms) sin atascar el servidor ESP32.
+        setInterval(() => {
+            if (comandoActivo !== 'S') {
+                comandoPendiente = comandoActivo;
+                intentarFetch();
+            }
+        }, 250);
+
         // Prevenir el menú contextual al mantener pulsado en dispositivos móviles
         window.oncontextmenu = function(event) {
             event.preventDefault();
             event.stopPropagation();
             return false;
         };
+
+        // Bucle de lectura de telemetría
+        setInterval(() => {
+            fetch('/telemetry')
+                .then(response => {
+                    if (response.ok) return response.json();
+                    throw new Error('Error en respuesta');
+                })
+                .then(data => {
+                    // Si llegamos aquí, estamos online y la conexión es exitosa
+                    let elEstado = document.getElementById('tel-estado');
+                    elEstado.textContent = 'Online';
+                    elEstado.className = '';
+                    
+                    // Mapeo de comandos para mostrar un texto amigable
+                    const mapCmd = {
+                        'F':'Adelante', 'B':'Atrás', 
+                        'U':'Subir', 'D':'Bajar', 
+                        'L':'Giro Izq.', 'R':'Giro Der.', 
+                        'S':'Detenido'
+                    };
+                    let cmdTexto = mapCmd[data.cmd] || data.cmd;
+                    
+                    // Actualizar el DOM
+                    document.getElementById('tel-cmd').textContent = cmdTexto;
+                    document.getElementById('tel-pos').textContent = data.pos;
+                })
+                .catch(error => {
+                    // Si hay error en la petición, asumimos que estamos offline
+                    let elEstado = document.getElementById('tel-estado');
+                    elEstado.textContent = 'Offline';
+                    elEstado.className = 'offline';
+                });
+        }, 500); // Consulta la telemetría cada medio segundo
     </script>
 </body>
 </html>

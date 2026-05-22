@@ -41,6 +41,11 @@ char comandoWeb = 'S'; // 'S' = Stop por defecto
 unsigned long ultimoComandoWebTime = 0; // Para el timeout de seguridad
 const unsigned long TIMEOUT_WEB_MS = 500; // Si no hay comando web en 500ms, se detiene la web
 
+// Variables de Telemetría
+unsigned long ultimoReporteTime = 0;
+const unsigned long INTERVALO_REPORTE_MS = 500;
+char comandoActualEjecutado = 'S';
+
 void setup() {
   // Inicializamos el puerto serial a 9600 baudios para comunicarnos con el ESP32
   Serial.begin(9600);
@@ -81,6 +86,9 @@ void loop() {
   
   // Función no bloqueante que actualiza los pasos del motor (debe llamarse constantemente)
   stepperGiro.runSpeed();
+
+  // 6. Enviar Telemetría
+  enviarTelemetria();
 }
 
 // ---------------------------------------------------------
@@ -89,12 +97,21 @@ void loop() {
 
 // Función para leer caracteres enviados por el ESP32
 void leerComandoSerial() {
-  if (Serial.available() > 0) {
+  bool recibioNuevo = false;
+  char ultimoC = '\0';
+  
+  // Leemos todo el buffer disponible para no quedarnos rezagados
+  while (Serial.available() > 0) {
     char c = Serial.read();
     if (c == 'F' || c == 'B' || c == 'U' || c == 'D' || c == 'L' || c == 'R' || c == 'S') {
-      comandoWeb = c;
-      ultimoComandoWebTime = millis(); // Actualizamos el temporizador de seguridad
+      ultimoC = c;
+      recibioNuevo = true;
     }
+  }
+  
+  if (recibioNuevo) {
+    comandoWeb = ultimoC;
+    ultimoComandoWebTime = millis(); // Actualizamos el temporizador de seguridad
   }
 }
 
@@ -209,4 +226,33 @@ void controlarGiro() {
 
   // Establecer la velocidad de movimiento continuo del motor paso a paso
   stepperGiro.setSpeed(velocidadStepper);
+}
+
+// Función para enviar datos de telemetría hacia el ESP32
+void enviarTelemetria() {
+  if (millis() - ultimoReporteTime >= INTERVALO_REPORTE_MS) {
+    ultimoReporteTime = millis();
+    
+    // Determinamos el comando actual de forma simplificada
+    // Si comandoWeb no es 'S', ese tiene prioridad. 
+    // Sino, evaluamos si algún motor se está moviendo por joystick.
+    comandoActualEjecutado = comandoWeb;
+    if (comandoActualEjecutado == 'S') {
+      int vX = analogRead(pinJoyX);
+      int vY = analogRead(pinJoyY);
+      int vZ = analogRead(pinJoyZ);
+      if (vX > umbralJoyMax) comandoActualEjecutado = 'F';
+      else if (vX < umbralJoyMin) comandoActualEjecutado = 'B';
+      else if (vY > umbralJoyMax) comandoActualEjecutado = 'U';
+      else if (vY < umbralJoyMin) comandoActualEjecutado = 'D';
+      else if (vZ > umbralJoyMax) comandoActualEjecutado = 'R';
+      else if (vZ < umbralJoyMin) comandoActualEjecutado = 'L';
+    }
+    
+    // Formato: T:posicion,comando
+    Serial.print("T:");
+    Serial.print(stepperGiro.currentPosition());
+    Serial.print(",");
+    Serial.println(comandoActualEjecutado);
+  }
 }
