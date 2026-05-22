@@ -18,7 +18,7 @@ def conectar_wifi():
         print("Conectando a la red WiFi...")
         estacion.connect(WIFI_SSID, WIFI_PASSWORD)
         
-        # Esperar hasta 10 segundos para la conexión
+        # Esperar 10 segundos para la conexión
         intentos = 0
         while not estacion.isconnected() and intentos < 10:
             time.sleep(1)
