@@ -134,8 +134,8 @@ async def main():
     # Bucle infinito para mantener vivo el servidor
     while True:
         await asyncio.sleep(3600)
-# Iniciar el bucle de eventos de uasyncio
+# Ejecutar el servidor al final de main.py de manera segura
 try:
     asyncio.run(main())
 except KeyboardInterrupt:
-    print("Servidor detenido manualmente.")
+    print("\nServidor web detenido desde el teclado.")
