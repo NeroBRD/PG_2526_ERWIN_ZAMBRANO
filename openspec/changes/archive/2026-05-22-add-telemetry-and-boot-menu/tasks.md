@@ -1,0 +1,5 @@
+- [x] 1. Implementar menú de inicio con `uselect.poll()` en `boot.py`.
+- [x] 2. Modificar `arduino_nano.ino` para enviar telemetría en formato `T:pos,cmd`.
+- [x] 3. Añadir endpoint `/telemetry` y bucle de lectura UART en `main.py`.
+- [x] 4. Eliminar `await asyncio.sleep(0.05)` bloqueante en el procesamiento de comandos en `main.py`.
+- [x] 5. Refactorizar `index.html` para usar `AbortController` y renderizar telemetría.
