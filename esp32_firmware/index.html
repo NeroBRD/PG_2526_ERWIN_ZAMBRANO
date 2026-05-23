@@ -3,192 +3,360 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Grúa Torre</title>
+    <title>Control de Grúa Torre Pro</title>
     <style>
-        /* Diseño minimalista y responsivo para el control remoto */
+        /* CSS Variables para Temas */
+        :root {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --panel-bg: #1e1e1e;
+            --primary-color: #4CAF50;
+            --btn-bg: #333333;
+            --btn-border: #555555;
+            --btn-text: #ffffff;
+            --stop-bg: #d32f2f;
+            --stop-border: #b71c1c;
+            --title-color: #aaaaaa;
+        }
+
+        [data-theme="neon"] {
+            --bg-color: #090914;
+            --text-color: #00ffff;
+            --panel-bg: #121226;
+            --primary-color: #ff00ff;
+            --btn-bg: #1a1a3a;
+            --btn-border: #00ffff;
+            --btn-text: #00ffff;
+            --stop-bg: #ff0055;
+            --stop-border: #ff0000;
+            --title-color: #00ffff;
+        }
+
+        [data-theme="day"] {
+            --bg-color: #e0e0e0;
+            --text-color: #121212;
+            --panel-bg: #ffffff;
+            --primary-color: #2196F3;
+            --btn-bg: #f5f5f5;
+            --btn-border: #bdbdbd;
+            --btn-text: #121212;
+            --stop-bg: #f44336;
+            --stop-border: #d32f2f;
+            --title-color: #555555;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            user-select: none; /* Evita que el texto se seleccione al mantener presionado */
+            user-select: none;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 15px;
         }
 
         h1 {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            text-align: center;
-            color: #4CAF50;
+            font-size: 1.4rem;
+            margin: 0;
+            color: var(--primary-color);
         }
 
-        /* Panel de telemetría */
+        .icon-btn {
+            background: var(--panel-bg);
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Telemetría */
         .telemetria-panel {
-            background-color: #1e1e1e;
-            padding: 15px 25px;
+            background-color: var(--panel-bg);
+            padding: 15px;
             border-radius: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 370px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 1rem;
+        }
+        .telemetria-panel div { display: flex; flex-direction: column; }
+        .telemetria-panel span { font-weight: bold; color: var(--primary-color); font-size: 1.2rem;}
+        .telemetria-panel span.offline { color: var(--stop-bg); }
+
+        /* Tools (Macros & Gyro) */
+        .tools-panel {
+            display: flex;
+            gap: 10px;
             margin-bottom: 20px;
             width: 100%;
-            max-width: 350px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            font-size: 1.1rem;
+            max-width: 400px;
+            justify-content: center;
         }
-
-        .telemetria-panel span {
+        .tool-btn {
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            border: 2px solid var(--primary-color);
+            padding: 10px 5px;
+            border-radius: 8px;
             font-weight: bold;
-            color: #4CAF50;
+            cursor: pointer;
+            flex: 1;
+            font-size: 0.9rem;
+            transition: all 0.2s;
         }
+        .tool-btn.active-record { background: #d32f2f; border-color: #ff5252; color: white; animation: blink 1s infinite; }
+        .tool-btn.active-play { background: #4CAF50; border-color: #81c784; color: white; }
+        .tool-btn.active-gyro { background: #2196F3; border-color: #64b5f6; color: white; }
+        @keyframes blink { 50% { opacity: 0.6; } }
 
-        .telemetria-panel span.offline {
-            color: #d32f2f;
-        }
-
-
-        /* Contenedor principal de controles */
+        /* Contenedores Dinámicos */
         .controles-container {
             display: flex;
             flex-direction: column;
-            gap: 40px;
+            gap: 20px;
             width: 100%;
             max-width: 400px;
         }
 
-        /* Secciones individuales (Carro, Elevación, Giro) */
         .seccion-control {
-            background-color: #1e1e1e;
-            padding: 20px;
+            background-color: var(--panel-bg);
+            padding: 15px 20px;
             border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative;
+        }
+
+        /* Botones para reordenar paneles */
+        .orden-btns {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            display: flex;
+            gap: 5px;
+        }
+        .orden-btn {
+            background: none; border: none; color: var(--title-color);
+            font-size: 1.5rem; cursor: pointer; padding: 0 5px;
         }
 
         .seccion-titulo {
             font-size: 1.2rem;
             margin-bottom: 15px;
-            color: #aaaaaa;
-        }
-
-        /* Disposición de los botones */
-        .botones-grupo {
-            display: flex;
-            gap: 20px;
-        }
-
-        /* Estilos de los botones */
-        .btn {
-            background-color: #333333;
-            color: white;
-            border: 2px solid #555555;
-            border-radius: 50%;
-            width: 80px;
-            height: 80px;
-            font-size: 1.2rem;
+            color: var(--title-color);
             font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: all 0.1s;
-            touch-action: manipulation; /* Optimiza el toque en móviles */
+            text-transform: uppercase;
         }
 
-        .btn:active {
-            background-color: #4CAF50;
-            border-color: #4CAF50;
-            transform: scale(0.95);
-        }
+        .botones-grupo { display: flex; gap: 20px; }
 
-        /* Botón Stop rojo */
+        .btn {
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: 2px solid var(--btn-border);
+            border-radius: 50%;
+            width: 75px; height: 75px;
+            font-size: 1.1rem; font-weight: bold;
+            cursor: pointer; display: flex;
+            justify-content: center; align-items: center;
+            touch-action: none;
+        }
+        .btn:active { background-color: var(--primary-color); border-color: var(--primary-color); color: #fff; transform: scale(0.95); }
+
         .btn-stop {
-            background-color: #d32f2f;
-            border-color: #b71c1c;
-            width: 100px;
-            border-radius: 10px;
-            margin-top: 20px;
+            background-color: var(--stop-bg); border-color: var(--stop-border); color: white;
+            width: 120px; border-radius: 10px; margin: 20px auto; display: block; font-size: 1.2rem;
         }
+        .btn-stop:active { filter: brightness(1.2); }
 
-        .btn-stop:active {
-            background-color: #ff5252;
-            border-color: #ff5252;
+        /* Modal Configuración */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--panel-bg); padding: 25px; border-radius: 10px;
+            border: 2px solid var(--primary-color); width: 80%; max-width: 300px;
+        }
+        .modal-content h2 { margin-top: 0; color: var(--primary-color); }
+        select {
+            width: 100%; padding: 10px; background: var(--bg-color); color: var(--text-color);
+            border: 1px solid var(--primary-color); border-radius: 5px; margin-bottom: 20px; font-size: 1.1rem;
+        }
+        .btn-close-modal {
+            background: var(--primary-color); color: white; border: none; padding: 10px;
+            width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 1.1rem;
         }
     </style>
 </head>
 <body>
 
-    <h1>🎮 Control Grúa Torre</h1>
+    <div class="top-bar">
+        <h1>🎮 Grúa Pro</h1>
+        <div style="display: flex; gap: 10px;">
+            <button class="icon-btn" onclick="abrirTutorial()">📖</button>
+            <button class="icon-btn" onclick="abrirConfig()">⚙️</button>
+        </div>
+    </div>
+
+    <!-- Modal de Configuración -->
+    <div class="modal" id="config-modal">
+        <div class="modal-content">
+            <h2>Configuración</h2>
+            <label>Tema Visual:</label>
+            <select id="tema-select" onchange="cambiarTema(this.value)">
+                <option value="industrial">Industrial (Predeterminado)</option>
+                <option value="neon">Cyberpunk Neón</option>
+                <option value="day">Modo Diurno (Claro)</option>
+            </select>
+            <button class="btn-close-modal" onclick="cerrarConfig()">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Tutorial -->
+    <div class="modal" id="tutorial-modal">
+        <div class="modal-content" style="max-width: 350px; max-height: 80vh; overflow-y: auto; text-align: left;">
+            <h2>📖 Manual de Usuario</h2>
+            
+            <h3 style="color:var(--primary-color); margin-bottom: 5px;">⚙️ Temas y Diseño</h3>
+            <p style="margin-top: 0; font-size: 0.95rem;">Usa el engranaje superior para colores. Presiona las flechas <b>▲/▼</b> en cada panel para reordenar los controles a tu gusto.</p>
+
+            <h3 style="color:var(--primary-color); margin-bottom: 5px;">🤖 Modo Macros</h3>
+            <p style="margin-top: 0; font-size: 0.95rem;">1. Toca <b>🔴 Grabar</b>.<br>2. Haz movimientos.<br>3. Toca <b>⏹️ Parar</b>.<br>4. Toca <b>▶️ Rutina</b> para que la grúa los repita sola.</p>
+
+            <h3 style="color:var(--primary-color); margin-bottom: 5px;">📱 Modo Inmersivo</h3>
+            <p style="margin-top: 0; font-size: 0.95rem;">Sostén el celular acostado. Al activarlo, inclina hacia adelante/atrás para mover el carro, y gira a los lados para rotar la grúa.</p>
+
+            <div style="background: var(--stop-bg); color: white; padding: 10px; border-radius: 5px; margin-top: 15px; font-size: 0.85rem;">
+                <b style="font-size: 0.95rem;">⚠️ ¿Sensor Bloqueado?</b><br>
+                Si dice "Datos Nulos", tu navegador apagó el sensor por seguridad. Para arreglarlo:<br>
+                1. Ve a <b>chrome://flags</b> (u opera://flags).<br>
+                2. Busca <i>Insecure origins treated as secure</i>.<br>
+                3. Escribe la IP de esta web y pon <b>Enabled</b>.<br>
+                4. Toca Relaunch (Reiniciar navegador).
+            </div>
+
+            <button class="btn-close-modal" onclick="cerrarTutorial()" style="margin-top: 15px;">Entendido</button>
+        </div>
+    </div>
 
     <!-- Panel de Telemetría -->
     <div class="telemetria-panel">
-        <div>Estado: <span id="tel-estado" class="offline">Offline</span></div>
-        <div>Comando: <span id="tel-cmd">-</span></div>
-        <div>Posición Giro: <span id="tel-pos">0</span></div>
+        <div><small>Red:</small> <span id="tel-estado" class="offline">Offline</span></div>
+        <div><small>Motor Giro:</small> <span id="tel-pos">0</span></div>
+        <div style="grid-column: span 2; flex-direction: row; justify-content: space-between; align-items: center;">
+            <small>Comando Activo:</small> <span id="tel-cmd">-</span>
+        </div>
     </div>
 
-    <div class="controles-container">
+    <!-- Panel de Herramientas Innovadoras -->
+    <div class="tools-panel">
+        <button class="tool-btn" id="btn-macro-rec" onclick="alternarGrabacion()">🔴 Grabar</button>
+        <button class="tool-btn" id="btn-macro-play" onclick="reproducirMacro()">▶️ Rutina</button>
+        <button class="tool-btn" id="btn-gyro" onclick="alternarGiroscopio()">📱 Inmersivo</button>
+    </div>
+    
+    <!-- Info del sensor inmersivo -->
+    <div id="gyro-debug" style="display:none; text-align:center; color: var(--title-color); font-size: 0.9rem; margin-bottom: 15px; font-family: monospace;">
+        Sensor: Esperando datos...
+    </div>
+
+    <!-- Controles que pueden ser reordenados -->
+    <div class="controles-container" id="controles-dinamicos">
         
-        <!-- Control de Carro (Adelante/Atrás) -->
-        <div class="seccion-control">
+        <div class="seccion-control" id="panel-carro">
+            <div class="orden-btns">
+                <button class="orden-btn" onclick="moverPanel('panel-carro', -1)">▲</button>
+                <button class="orden-btn" onclick="moverPanel('panel-carro', 1)">▼</button>
+            </div>
             <div class="seccion-titulo">Carro</div>
             <div class="botones-grupo">
-                <button class="btn" onmousedown="enviarComando('F')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('F')" ontouchend="enviarComando('S')">Adel.</button>
-                <button class="btn" onmousedown="enviarComando('B')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('B')" ontouchend="enviarComando('S')">Atrás</button>
+                <button class="btn" onpointerdown="enviarComando('F')" onpointerup="enviarComando('S')" onpointerleave="enviarComando('S')">Adel.</button>
+                <button class="btn" onpointerdown="enviarComando('B')" onpointerup="enviarComando('S')" onpointerleave="enviarComando('S')">Atrás</button>
             </div>
         </div>
 
-        <!-- Control de Elevación (Subir/Bajar) -->
-        <div class="seccion-control">
+        <div class="seccion-control" id="panel-elevacion">
+            <div class="orden-btns">
+                <button class="orden-btn" onclick="moverPanel('panel-elevacion', -1)">▲</button>
+                <button class="orden-btn" onclick="moverPanel('panel-elevacion', 1)">▼</button>
+            </div>
             <div class="seccion-titulo">Elevación</div>
             <div class="botones-grupo">
-                <button class="btn" onmousedown="enviarComando('U')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('U')" ontouchend="enviarComando('S')">Subir</button>
-                <button class="btn" onmousedown="enviarComando('D')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('D')" ontouchend="enviarComando('S')">Bajar</button>
+                <button class="btn" onpointerdown="enviarComando('U')" onpointerup="enviarComando('S')" onpointerleave="enviarComando('S')">Subir</button>
+                <button class="btn" onpointerdown="enviarComando('D')" onpointerup="enviarComando('S')" onpointerleave="enviarComando('S')">Bajar</button>
             </div>
         </div>
 
-        <!-- Control de Giro (Izquierda/Derecha) -->
-        <div class="seccion-control">
+        <div class="seccion-control" id="panel-giro">
+            <div class="orden-btns">
+                <button class="orden-btn" onclick="moverPanel('panel-giro', -1)">▲</button>
+                <button class="orden-btn" onclick="moverPanel('panel-giro', 1)">▼</button>
+            </div>
             <div class="seccion-titulo">Giro</div>
             <div class="botones-grupo">
-                <button class="btn" onmousedown="enviarComando('L')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('L')" ontouchend="enviarComando('S')">Izq.</button>
-                <button class="btn" onmousedown="enviarComando('R')" onmouseup="enviarComando('S')" ontouchstart="enviarComando('R')" ontouchend="enviarComando('S')">Der.</button>
+                <button class="btn" onpointerdown="enviarComando('L')" onpointerup="enviarComando('S')" onpointerleave="enviarComando('S')">Izq.</button>
+                <button class="btn" onpointerdown="enviarComando('R')" onpointerup="enviarComando('S')" onpointerleave="enviarComando('S')">Der.</button>
             </div>
         </div>
-
-        <!-- Botón Parada de Emergencia -->
-        <button class="btn btn-stop" onclick="enviarComando('S')">STOP</button>
 
     </div>
 
+    <!-- Botón Parada de Emergencia Fijo -->
+    <button class="btn btn-stop" onpointerdown="enviarComando('S')">STOP</button>
+
     <script>
-        // Lógica de JavaScript para enviar peticiones al ESP32 sin recargar la página
-        
+        /* =========================================
+           SISTEMA BASE: RED Y ESTADOS
+           ========================================= */
         let comandoActivo = 'S';
         let comandoPendiente = null;
         let peticionEnVuelo = false;
         let fetchController = null;
 
         function enviarComando(comando) {
+            // Lógica de Macros
+            if(grabandoMacro && comandoActivo !== comando) {
+                macroSecuencia.push({ cmd: comando, t: Date.now() - tiempoInicioGrabacion });
+            }
+            if(reproduciendoMacro && comando === 'S') {
+                cancelarMacro();
+            }
+
             comandoActivo = comando;
             comandoPendiente = comando;
             
-            // Si es un Stop, abortamos cualquier petición en vuelo para darle prioridad absoluta e inmediata
             if (comando === 'S' && peticionEnVuelo && fetchController) {
                 fetchController.abort();
                 peticionEnVuelo = false;
             }
-            
             intentarFetch();
         }
 
         function intentarFetch() {
-            // Si hay una petición de movimiento en curso o no hay nada pendiente, esperamos
             if (peticionEnVuelo || !comandoPendiente) return;
 
             let cmdAEnviar = comandoPendiente;
@@ -199,22 +367,13 @@
 
             fetch(`/cmd?c=${cmdAEnviar}`, { signal: fetchController.signal })
                 .then(r => r.text())
-                .catch(error => {
-                    if (error.name !== 'AbortError') {
-                        console.error('Error de red al enviar comando:', error);
-                    }
-                })
+                .catch(error => { if (error.name !== 'AbortError') console.error('Red:', error); })
                 .finally(() => {
                     peticionEnVuelo = false;
-                    // Si el usuario soltó o cambió de botón mientras la red cargaba, lo enviamos de inmediato
-                    if (comandoPendiente) {
-                        intentarFetch();
-                    }
+                    if (comandoPendiente) intentarFetch();
                 });
         }
 
-        // Bucle "Keep-Alive": Repite el comando cada 250ms solo si la red está libre
-        // Esto evita que actúe el Timeout de Seguridad del Arduino (500ms) sin atascar el servidor ESP32.
         setInterval(() => {
             if (comandoActivo !== 'S') {
                 comandoPendiente = comandoActivo;
@@ -222,46 +381,208 @@
             }
         }, 250);
 
-        // Prevenir el menú contextual al mantener pulsado en dispositivos móviles
-        window.oncontextmenu = function(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            return false;
-        };
+        window.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); return false; };
 
-        // Bucle de lectura de telemetría
+        // Telemetría
         setInterval(() => {
             fetch('/telemetry')
-                .then(response => {
-                    if (response.ok) return response.json();
-                    throw new Error('Error en respuesta');
-                })
+                .then(r => { if (r.ok) return r.json(); throw new Error(); })
                 .then(data => {
-                    // Si llegamos aquí, estamos online y la conexión es exitosa
-                    let elEstado = document.getElementById('tel-estado');
-                    elEstado.textContent = 'Online';
-                    elEstado.className = '';
-                    
-                    // Mapeo de comandos para mostrar un texto amigable
-                    const mapCmd = {
-                        'F':'Adelante', 'B':'Atrás', 
-                        'U':'Subir', 'D':'Bajar', 
-                        'L':'Giro Izq.', 'R':'Giro Der.', 
-                        'S':'Detenido'
-                    };
-                    let cmdTexto = mapCmd[data.cmd] || data.cmd;
-                    
-                    // Actualizar el DOM
-                    document.getElementById('tel-cmd').textContent = cmdTexto;
+                    document.getElementById('tel-estado').textContent = 'Online';
+                    document.getElementById('tel-estado').className = '';
+                    const mapCmd = {'F':'Carro Adelante', 'B':'Carro Atrás', 'U':'Elevación Subir', 'D':'Elevación Bajar', 'L':'Giro Izq.', 'R':'Giro Der.', 'S':'Detenido'};
+                    document.getElementById('tel-cmd').textContent = mapCmd[data.cmd] || data.cmd;
                     document.getElementById('tel-pos').textContent = data.pos;
                 })
-                .catch(error => {
-                    // Si hay error en la petición, asumimos que estamos offline
-                    let elEstado = document.getElementById('tel-estado');
-                    elEstado.textContent = 'Offline';
-                    elEstado.className = 'offline';
+                .catch(() => {
+                    document.getElementById('tel-estado').textContent = 'Offline';
+                    document.getElementById('tel-estado').className = 'offline';
                 });
-        }, 500); // Consulta la telemetría cada medio segundo
+        }, 500);
+
+        /* =========================================
+           TEMAS Y REORDENAMIENTO (CONFIGURACIÓN)
+           ========================================= */
+        let ordenPaneles = ['panel-carro', 'panel-elevacion', 'panel-giro'];
+
+        function abrirConfig() { document.getElementById('config-modal').classList.add('active'); }
+        function cerrarConfig() { document.getElementById('config-modal').classList.remove('active'); }
+
+        function abrirTutorial() { document.getElementById('tutorial-modal').classList.add('active'); }
+        function cerrarTutorial() { document.getElementById('tutorial-modal').classList.remove('active'); }
+
+        function cambiarTema(tema) {
+            document.documentElement.setAttribute('data-theme', tema);
+            localStorage.setItem('temaGrua', tema);
+        }
+
+        function moverPanel(id, direccion) {
+            let index = ordenPaneles.indexOf(id);
+            if(direccion === -1 && index > 0) {
+                [ordenPaneles[index-1], ordenPaneles[index]] = [ordenPaneles[index], ordenPaneles[index-1]];
+            } else if (direccion === 1 && index < 2) {
+                [ordenPaneles[index+1], ordenPaneles[index]] = [ordenPaneles[index], ordenPaneles[index+1]];
+            }
+            renderizarPaneles();
+            localStorage.setItem('ordenGrua', JSON.stringify(ordenPaneles));
+        }
+
+        function renderizarPaneles() {
+            let contenedor = document.getElementById('controles-dinamicos');
+            ordenPaneles.forEach(id => { contenedor.appendChild(document.getElementById(id)); });
+        }
+
+        // Cargar configuración guardada
+        window.onload = () => {
+            let temaGuardado = localStorage.getItem('temaGrua');
+            if(temaGuardado) {
+                document.getElementById('tema-select').value = temaGuardado;
+                cambiarTema(temaGuardado);
+            }
+            let ordenGuardado = localStorage.getItem('ordenGrua');
+            if(ordenGuardado) {
+                ordenPaneles = JSON.parse(ordenGuardado);
+                renderizarPaneles();
+            }
+        };
+
+        /* =========================================
+           INNOVACIÓN: MACROS
+           ========================================= */
+        let macroSecuencia = [];
+        let grabandoMacro = false;
+        let reproduciendoMacro = false;
+        let tiempoInicioGrabacion = 0;
+
+        function alternarGrabacion() {
+            if(reproduciendoMacro) return;
+            grabandoMacro = !grabandoMacro;
+            const btn = document.getElementById('btn-macro-rec');
+            if(grabandoMacro) {
+                macroSecuencia = [];
+                tiempoInicioGrabacion = Date.now();
+                btn.classList.add('active-record');
+                btn.textContent = '⏹️ Parar';
+            } else {
+                btn.classList.remove('active-record');
+                btn.textContent = '🔴 Grabar';
+                enviarComando('S'); // Asegurar stop al final
+            }
+        }
+
+        async function reproducirMacro() {
+            if(grabandoMacro || reproduciendoMacro) return;
+            if(macroSecuencia.length === 0) { alert("Primero graba una rutina."); return; }
+            
+            reproduciendoMacro = true;
+            const btn = document.getElementById('btn-macro-play');
+            btn.classList.add('active-play');
+            btn.textContent = '⏳ Ejecutando';
+
+            let tiempoVirtual = 0;
+            for(let i = 0; i < macroSecuencia.length; i++) {
+                if(!reproduciendoMacro) break; // Si el usuario presionó Stop
+                let accion = macroSecuencia[i];
+                let delay = accion.t - tiempoVirtual;
+                if(delay > 0) await new Promise(r => setTimeout(r, delay));
+                
+                // Enviar directamente a la red sin pasar por el grabador
+                comandoActivo = accion.cmd;
+                comandoPendiente = accion.cmd;
+                intentarFetch();
+                
+                tiempoVirtual = accion.t;
+            }
+            
+            cancelarMacro();
+        }
+
+        function cancelarMacro() {
+            reproduciendoMacro = false;
+            comandoActivo = 'S';
+            comandoPendiente = 'S';
+            intentarFetch();
+            const btn = document.getElementById('btn-macro-play');
+            btn.classList.remove('active-play');
+            btn.textContent = '▶️ Rutina';
+        }
+
+        /* =========================================
+           INNOVACIÓN: GIROSCOPIO (MODO INMERSIVO)
+           ========================================= */
+        let modoGiroscopio = false;
+        let giroscopioComando = 'S';
+
+        function alternarGiroscopio() {
+            if(reproduciendoMacro) return;
+            modoGiroscopio = !modoGiroscopio;
+            const btn = document.getElementById('btn-gyro');
+            
+            if(modoGiroscopio) {
+                document.getElementById('gyro-debug').style.display = 'block';
+                document.getElementById('gyro-debug').textContent = "Sensor: Solicitando acceso...";
+
+                // Solicitar permisos en iOS 13+
+                if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(r => { 
+                            if(r === 'granted') activarGiroscopio(btn);
+                            else {
+                                alert("Permiso denegado.");
+                                alternarGiroscopio();
+                            }
+                        })
+                        .catch(e => { 
+                            document.getElementById('gyro-debug').textContent = "Sensor: Bloqueado por seguridad (Requiere HTTPS)";
+                            modoGiroscopio = false;
+                            btn.classList.remove('active-gyro');
+                        });
+                } else {
+                    activarGiroscopio(btn); // Android / navegadores antiguos
+                }
+            } else {
+                btn.classList.remove('active-gyro');
+                document.getElementById('gyro-debug').style.display = 'none';
+                window.removeEventListener('deviceorientation', manejarGiroscopio);
+                enviarComando('S');
+            }
+        }
+
+        function activarGiroscopio(btn) {
+            btn.classList.add('active-gyro');
+            document.getElementById('gyro-debug').textContent = "Sensor: Esperando movimiento...";
+            window.addEventListener('deviceorientation', manejarGiroscopio);
+        }
+
+        function manejarGiroscopio(event) {
+            if(!modoGiroscopio || reproduciendoMacro) return;
+            
+            let pitch = event.beta;  // Adelante/Atras [-180, 180]
+            let roll = event.gamma;  // Izq/Der [-90, 90]
+            
+            if (pitch === null || roll === null) {
+                document.getElementById('gyro-debug').textContent = "Sensor: Datos Nulos (Navegador bloqueando por HTTP)";
+                return; // Dispositivo sin sensor o bloqueado
+            }
+
+            document.getElementById('gyro-debug').textContent = `Sensor: P=${Math.round(pitch)}° | R=${Math.round(roll)}°`;
+
+            let cmd = 'S';
+            let umbral = 20; // Grados de zona muerta para no moverse accidentalmente
+
+            if(Math.abs(pitch) > Math.abs(roll)) {
+                if(pitch > umbral) cmd = 'B';
+                else if(pitch < -umbral) cmd = 'F';
+            } else {
+                if(roll > umbral) cmd = 'R';
+                else if(roll < -umbral) cmd = 'L';
+            }
+
+            if(cmd !== giroscopioComando) {
+                giroscopioComando = cmd;
+                enviarComando(cmd);
+            }
+        }
     </script>
 </body>
 </html>
