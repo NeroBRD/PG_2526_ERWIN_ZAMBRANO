@@ -24,7 +24,7 @@ When ready to implement, run /opsx:apply
 
    From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
 
-   **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
+   **IMPORTANT**: Do NOT proceed without understanding what the user wants to build. Ask for clarification if the request is highly ambiguous.
 
 2. **Create the change directory**
    ```bash
