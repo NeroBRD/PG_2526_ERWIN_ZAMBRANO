@@ -2,6 +2,15 @@
 
 Este repositorio contiene el código fuente para el sistema de control dual (Manual y Web) de una grúa torre, utilizando un **Arduino Nano** como controlador de motores y un **ESP32** como servidor web y puente de comunicación.
 
+## 🌟 Características Avanzadas (Grúa Pro)
+
+La última versión del software incluye capacidades profesionales completas:
+- **Telemetría en Tiempo Real**: Comunicación bidireccional UART para ver estado y posición en pantalla.
+- **Menú de Boot Interactivo**: `boot.py` cuenta con un temporizador REPL para facilitar el desarrollo.
+- **Temas y Layout**: Interfaz personalizable (Oscuro, Neón, Diurno) con paneles reordenables.
+- **Automatización (Macros)**: Sistema para grabar secuencias de movimiento con latencia cero y reproducirlas autónomamente.
+- **Control Inmersivo**: Uso del giroscopio del celular para manejar la grúa mediante inclinación física.
+
 ## 🚀 Tecnologías Requeridas
 
 Para compilar, subir y modificar este proyecto, debes tener instalado el siguiente software en tu computadora:
@@ -84,8 +93,8 @@ Para compilar, subir y modificar este proyecto, debes tener instalado el siguien
 
 ## 📖 Especificaciones Técnicas (OpenSpec)
 
-La lógica de control, los endpoints del servidor web y el protocolo de mensajería UART están formalmente documentados utilizando el estándar OpenSpec. Puedes encontrar estas especificaciones detalladas en la carpeta de este repositorio:
-
-- **[Lógica de Control](openspec/changes/optimize-crane-code/specs/crane-control-logic/spec.md)**: Prioridades y timeouts de seguridad.
-- **[Endpoints Web](openspec/changes/optimize-crane-code/specs/web-server-endpoints/spec.md)**: Rutas HTTP del ESP32.
-- **[Protocolo UART](openspec/changes/optimize-crane-code/specs/uart-messaging-protocol/spec.md)**: Comandos seriales.
+La lógica de control, los endpoints del servidor web, el protocolo de mensajería UART y las características de la interfaz Pro están formalmente documentados utilizando el estándar OpenSpec en la carpeta `openspec/`.
+- **Lógica de Control**: Prioridades y timeouts de seguridad.
+- **Endpoints Web y Telemetría**: Rutas asíncronas y optimización de latencia (AbortController/Streaming).
+- **Protocolo UART**: Comandos bidireccionales a 9600 baudios.
+- **Interfaz Avanzada**: Lógica de almacenamiento local (Temas/Layout), sistema de Macros y mapeo de vectores de giroscopio.
