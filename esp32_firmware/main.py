@@ -19,13 +19,7 @@ estado_grua = {"pos": 0, "cmd": "S"}
 # ---------------------------------------------------------
 # SERVIDOR WEB
 # ---------------------------------------------------------
-def leer_html():
-    """Lee y retorna el contenido del archivo index.html."""
-    try:
-        with open('index.html', 'r') as f:
-            return f.read()
-    except Exception as e:
-        return f"Error al cargar index.html: {e}"
+
 async def leer_uart():
     """Lee constantemente los datos de telemetría enviados por el Arduino."""
     sreader = asyncio.StreamReader(uart)
@@ -65,11 +59,19 @@ async def procesar_peticion(reader, writer):
         
         # Procesamiento básico del enrutamiento
         if "GET / " in linea_peticion:
-            # Servir la página web principal
+            # Servir la página web principal en fragmentos para ahorrar RAM
             print("Sirviendo página web...")
-            html = leer_html()
-            respuesta = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n" + html
-            writer.write(respuesta.encode('utf-8'))
+            writer.write(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n")
+            try:
+                with open('index.html', 'rb') as f:
+                    while True:
+                        chunk = f.read(512)
+                        if not chunk:
+                            break
+                        writer.write(chunk)
+                        await writer.drain()
+            except Exception as e:
+                print("Error leyendo index.html:", e)
             
         elif "GET /cmd?c=" in linea_peticion:
             # Extraer el comando (F, B, U, D, L, R, S)
@@ -102,8 +104,8 @@ async def procesar_peticion(reader, writer):
         await writer.drain()
         
     except OSError as e:
-        # 104 = ECONNRESET, 103 = ECONNABORTED, 32 = EPIPE
-        if len(e.args) > 0 and e.args[0] in (104, 103, 32):
+        # 104 = ECONNRESET, 103 = ECONNABORTED, 32 = EPIPE, 113 = ECONNABORTED (en algunos puertos)
+        if len(e.args) > 0 and e.args[0] in (104, 103, 32, 113):
             # El navegador cerró la conexión a propósito (AbortController funcionó)
             pass
         else:
