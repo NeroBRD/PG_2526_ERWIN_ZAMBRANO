@@ -74,7 +74,7 @@ void setup() {
 }
 
 void loop() {
-  // 1. Leer Comandos Web desde Serial
+  // 1. Leer Comandos Web desde Serial.
   leerComandoSerial();
 
   // 2. Controlar Timeout de Seguridad de la Web
