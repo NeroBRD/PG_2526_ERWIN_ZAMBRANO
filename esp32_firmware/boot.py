@@ -6,8 +6,9 @@ import sys
 import uselect
 
 # ---------------------------------------------------------
-# CONFIGURACIÓN DE RED WIFI
+# CONFIGURACIÓN DE RED WIFI Y VERSIÓN
 # ---------------------------------------------------------
+FIRMWARE_VERSION = "1.2.0-PRO"
 WIFI_SSID = "TU_SSID"        # Reemplazar con el nombre de tu red WiFi
 WIFI_PASSWORD = "TU_PASSWORD" # Reemplazar con la contraseña de tu red WiFi
 
@@ -43,9 +44,9 @@ def menu_inicio(timeout_segundos=5):
     """
     Muestra un menú en la terminal. Avanza automáticamente si no hay respuesta.
     """
-    print("\n" + "="*40)
-    print("      SISTEMA DE CONTROL - GRÚA TORRE")
-    print("="*40)
+    print("\n" + "="*45)
+    print(f"  SISTEMA DE CONTROL - GRÚA TORRE v{FIRMWARE_VERSION}")
+    print("="*45)
     print("1. Iniciar sistema normalmente (Modo Ejecución)")
     print("2. Detener en modo programación (Liberar REPL)")
     print(f"Selecciona una opción (Avanza a opción 1 en {timeout_segundos}s)...")
