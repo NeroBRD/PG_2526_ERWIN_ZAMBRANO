@@ -60,7 +60,7 @@ Si alguien más quiere probarlo en su propio teléfono, pídele que haga estos p
 **Para Google Chrome o Microsoft Edge (Android):**
 1. Abre una pestaña nueva y escribe en la barra superior: `chrome://flags` (o `edge://flags`).
 2. En la barra de búsqueda que aparece, escribe: `insecure origins treated as secure`.
-3. En la caja de texto debajo de esa opción, escribe la dirección exacta de la grúa incluyendo el `http://` (Por ejemplo: `http://192.168.100.144`).
+3. En la caja de texto debajo de esa opción, escribe la dirección exacta de la grúa incluyendo el `http://` (Por ejemplo: `http://192.168.xxx.xxx`).
 4. Cambia el botón de *Default/Disabled* a **Enabled**.
 
 5. Presiona el botón azul **Relaunch** (Reiniciar navegador) en la parte inferior.
