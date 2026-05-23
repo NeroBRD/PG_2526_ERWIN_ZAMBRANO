@@ -6,7 +6,7 @@ Este documento está optimizado para su procesamiento por agentes de IA en **Ant
 ---
 
 ## 1. Arquitectura de Hardware y Pines
-### Controlador A: Arduino Nano (Actuador Principal)
+### Controlador A: Arduino Nano (Actuador Principal).
 - **Framework:** Arduino / C++
 - **Responsabilidad:** Controlar motores y leer entradas analógicas. Escuchar comandos Serial desde ESP32.
 - **Asignación de Pines:**
