@@ -1,6 +1,11 @@
 #include <AccelStepper.h>
 
 // ---------------------------------------------------------
+// VERSIÓN DE SOFTWARE
+// ---------------------------------------------------------
+#define FIRMWARE_VERSION "1.2.0-PRO"
+
+// ---------------------------------------------------------
 // CONFIGURACIÓN DE PINES
 // ---------------------------------------------------------
 
@@ -49,6 +54,9 @@ char comandoActualEjecutado = 'S';
 void setup() {
   // Inicializamos el puerto serial a 9600 baudios para comunicarnos con el ESP32
   Serial.begin(9600);
+  
+  // Imprimir la versión de firmware (será ignorado por la telemetría del ESP32)
+  Serial.println("Iniciando Arduino Grúa Pro v" FIRMWARE_VERSION);
   
   // Configuramos los pines de los motores DC como salida
   pinMode(pinAIN1, OUTPUT);
